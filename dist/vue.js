@@ -50,13 +50,72 @@
     return typeof key === "symbol" ? key : String(key);
   }
 
+  // 重写数组中的部分方法
+
+  var oldArrayProto = Array.prototype; // 获取数组的原型
+  var newArrayProto = Object.create(oldArrayProto);
+  var methods = [
+  // 找到所有的变异方法
+  'push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'];
+  // concat slice 不会改变原来的数据
+  methods.forEach(function (method) {
+    // 代理newArrayProto身上的方法
+    newArrayProto[method] = function () {
+      var _oldArrayProto$method;
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      // 重写数组的方法
+      // console.log("method",method);
+      // console.log("args",args);
+      // 内部调用原来的方法 函数的劫持，切片编程
+      var result = (_oldArrayProto$method = oldArrayProto[method]).call.apply(_oldArrayProto$method, [this].concat(args));
+      // 对新添加的数据，再次进行劫持
+      var inserted; // 需要进行劫持的代码
+      var ob = this.__ob__; // 拿到Observe
+      switch (method) {
+        case 'push':
+        case 'unshift':
+          inserted = args;
+          break;
+        case 'splice':
+          // arr.splice(0,1,{a:1},{b:2})
+          // 前两个参数是方法用的，需要截取一下，获取实际参数
+          inserted = args.slice(2);
+      }
+      // console.log("inserted",inserted);
+      if (inserted) {
+        // 对新增的内容进行观测
+        ob.observeArray(inserted);
+      }
+      return result;
+    };
+  });
+
   /**
    * 该对象上有一些方法，调用这些方法可以对数据进行响应式代理
    */
   var Observe = /*#__PURE__*/function () {
+    // 一开始进入该方法，一定是一个对象，然后才是其他东西
     function Observe(data) {
       _classCallCheck(this, Observe);
-      this.walk(data);
+      // 想当于给数据加了一个标识，如果数据上有这个属性，说明被观测过
+      // data.__ob__ = this;// Observe对象挂载到数据身上，方便使用
+      Object.defineProperty(data, '__ob__', {
+        value: this,
+        enumerable: false
+      });
+      // 判断用户是否是一个数组
+      if (Array.isArray(data)) {
+        // 重写数组的方法 7的变异方法 可以修改数组本身
+        // 调用data向上查询方法的时候，被调用被劫持的函数
+        data.__proto__ = newArrayProto;
+        // "[a,{b:13}]",数组中的对象要进行响应式劫持
+        this.observeArray(data);
+      } else {
+        // 不是数组的情况
+        this.walk(data);
+      }
     }
     /**
      * 循环该对象所有keys，对所有属性进行代理劫持
@@ -68,6 +127,19 @@
         // 重新定义属性
         Object.keys(data).forEach(function (key) {
           return defineReactive(data, key, data[key]);
+        });
+      }
+      /**
+       * 监听数组中的对象数据
+       * @param {待监听的数据} data 
+       */
+    }, {
+      key: "observeArray",
+      value: function observeArray(data) {
+        // 对数组中的 对象 数据进行监听，不是对象的数据
+        // 被observe return掉了
+        data.forEach(function (item) {
+          return observe(item);
         });
       }
     }]);
@@ -90,6 +162,8 @@
       // 修改的时候
       set: function set(newValue) {
         if (newValue === value) return;
+        // 如果设置的值是一个对象，继续进行代理
+        observe(newValue);
         value = newValue;
       }
     });
@@ -104,10 +178,14 @@
     if (_typeof(data) !== 'object' || data === null) {
       return; // 只对对象做劫持
     }
+
     // 如果一个对象被劫持了，那就不需要再被劫持了
     // 要判断一个对象是否被劫持过了，
     // 可以增添一个实例，用实例来判断是否被劫持过
-
+    if (data.__ob__ instanceof Observe) {
+      // 标识该对象已经被代理过了
+      return data.__ob__;
+    }
     return new Observe(data);
   }
 
