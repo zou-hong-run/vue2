@@ -1,0 +1,26 @@
+{
+  "name": "vue2",
+  "version": "1.0.0",
+  "description": "rollup打包类库,体积较小,专注打包类库",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rollup -cw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zou-hong-run/vue2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zou-hong-run/vue2/issues"
+  },
+  "homepage": "https://github.com/zou-hong-run/vue2#readme",
+  "devDependencies": {
+    "@babel/core": "^7.21.8",
+    "@babel/preset-env": "^7.21.5",
+    "rollup": "^2.79.1",
+    "rollup-plugin-babel": "^4.4.0"
+  }
+}
