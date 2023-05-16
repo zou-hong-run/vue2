@@ -9,7 +9,6 @@
 <body>
   <script src="./vue.js"></script>
   <script>
-    console.log(Vue);
     // 响应式的数据变化，内部数据变化我可以监控到
     // 数据的取值 和 更改值 我们要监听到
     const vm = new Vue({
@@ -20,6 +19,9 @@
         }
       }
     })
+    console.log(vm);
+    console.log(vm.name);
+    console.log(vm.age = 20);
   </script>
 </body>
 </html>
