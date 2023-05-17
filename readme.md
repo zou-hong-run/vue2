@@ -31,7 +31,13 @@ export default {
 ```
 
 - index.js代码主入口
-- init.js将给Vue扩展其他方法的文件
+- init.js将给Vue扩展其他方法的文件 `_init_`,`$mount`
 - state.js专门初始化数据的文件 初始化props,data,computed,watch...等 调用observe.js进行数据代理
 - observe/index.js 进行数据的响应式代理
 - observe/array.js 对数组的方法进行劫持，将数组的数据进行响应式代理
+- compiler/index.js 将模板编译成ast $mount方法调用该文件中的函数
+  - parseHTML()
+    - advance()
+    - createASTElement()
+    - start(),chars(),end()
+- 

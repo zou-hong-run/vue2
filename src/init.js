@@ -1,4 +1,4 @@
-import { compileToFunction } from "./compiler";
+import { compileToFunction } from "./compiler/index";
 import { initState } from "./state";
 
 /**
