@@ -1,4 +1,5 @@
 import { initMixin } from "./init";
+import { initLifeCycle } from "./lifecycle";
 
 
 
@@ -10,6 +11,9 @@ function Vue(options){
   // initMixin在Vue对象上拓展的_init方法的方法
   this._init(options)
 }
-initMixin(Vue)
+
+initMixin(Vue);
+
+initLifeCycle(Vue);
 
 export default Vue;

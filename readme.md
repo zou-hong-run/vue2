@@ -53,4 +53,6 @@ export default {
     - advance()
     - createASTElement()
     - start(),chars(),end()
-- 
+- lifecycle.js 对vue扩展`_update`,`_render方法`，
+  - initLifeCycle给Vue拓展`_update,_render`
+  - mountComponent方法
