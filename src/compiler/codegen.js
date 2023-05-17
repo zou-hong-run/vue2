@@ -83,10 +83,10 @@ function genChildren(children){
 export function codegen(ast){
     let children = genChildren(ast.children);
     // _c(节点，属性，孩子)
-    let code = `
-    _c('${ast.tag}',
-        ${ast.attrs.length>0?genProps(ast.attrs):'null'}
-        ${ast.children.length>0?`,${children}`:''}
-    )`;
+    let code = (`_c('${ast.tag}',${
+        ast.attrs.length>0?genProps(ast.attrs):'null'}${
+        ast.children.length ? `,${children}`:''
+    })`);
+    // console.log(code);
     return code
 }

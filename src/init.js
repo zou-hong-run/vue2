@@ -43,14 +43,14 @@ export function initMixin(Vue) {
 				}
 			}
 			if (template) {
-				// 需要对模板进行编译 生成render函数
+				// 需要对模板进行编译 生成render函数(由模板语法组成的函数)，
+				// 调用render函数 通过模板语法产生虚拟节点
 				const render = compileToFunction(template);
 				ops.render = render;// jsx 最终会被 编译成h('xxx')
 			}
 		}
 		// 有render方法
 		// ops.render;// 最终就获取render方法
-
 		mountComponent(vm, el);// 组件的挂载
 	}
 

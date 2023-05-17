@@ -7,12 +7,12 @@
   <title>vuedemo</title>
 </head>
 <body>
-  <div id="app" style="color:yellow;font-size: 24px;">
+  <div id="app" style="color:purple;font-size: 24px;">
     我是一段文字
-    <div style="color:red;">
-      {{id}}hello{{name}}456789 
+    <div style="color:silver;">
+      {{age}}hello{{name}}456789 
     </div>
-    <span>world</span>
+    <span>world{{num}}</span>
   </div>
   <script src="./vue.js"></script>
   <script>
@@ -21,8 +21,9 @@
     const vm = new Vue({
       data(){
         return {
-          name:'redrun',
+          name:"redrun",
           age:18,
+          num:18,
           id:{
             userId:1334,
             cardId:2334
@@ -36,7 +37,17 @@
       //   return createELement()
       // }
     })
-    console.log(vm);
+    // console.log(vm);
+
+    // 属性和视图关联起来，数据变化可以自动更新视图
+
+    setTimeout(()=>{
+      vm.name = 'zou';
+      vm.age = 30
+      // render渲染虚拟节点，update将虚拟节点转换真实节点并替换
+      vm._update(vm._render());// 手动渲染 更新
+    },1000)
+    
   </script>
 </body>
 </html>

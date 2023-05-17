@@ -365,13 +365,15 @@
   function codegen(ast) {
     var children = genChildren(ast.children);
     // _c(节点，属性，孩子)
-    var code = "\n    _c('".concat(ast.tag, "',\n        ").concat(ast.attrs.length > 0 ? genProps(ast.attrs) : 'null', "\n        ").concat(ast.children.length > 0 ? ",".concat(children) : '', "\n    )");
+    var code = "_c('".concat(ast.tag, "',").concat(ast.attrs.length > 0 ? genProps(ast.attrs) : 'null').concat(ast.children.length ? ",".concat(children) : '', ")");
+    // console.log(code);
     return code;
   }
 
   /**
    * 将template转换为ast语法树
-   * 生成render函数（render方法执行后的返回的结果就是 虚拟dom）
+   * 将ast抽象语法树 转换成 模板字符串 
+   * 将模板字符串 封装成 render函数
    * @param {带解析的模板} template 
    */
   function compileToFunction(template) {
@@ -380,10 +382,99 @@
     // 将抽象语法树，转换为render函数 _c创建元素，_v创建文本 _s=>JSON.stringif()
     // 模板引擎的原理，with + new Function
     var code = codegen(ast);
-    code = "with(this){return ".concat(code, "}");
+    code = "with(this){\n        return ".concat(code, ";\n    }");
     // 根据代码生成render函数
     var render = new Function(code);
     return render;
+  }
+
+  /**
+   * h(),_c()
+   * 创建虚拟元素节点
+   * data=>attrs
+   */
+  function createElementVNode(vm, tag) {
+    var data = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    var key = data === null || data === void 0 ? void 0 : data.key;
+    if (key) {
+      delete data.key;
+    }
+    for (var _len = arguments.length, children = new Array(_len > 3 ? _len - 3 : 0), _key = 3; _key < _len; _key++) {
+      children[_key - 3] = arguments[_key];
+    }
+    return vNode(vm, tag, key, data, children);
+  }
+  /**
+   * _v()
+   * 创建虚拟文本节点
+   */
+  function createTextVNode(vm, text) {
+    return vNode(vm, undefined, undefined, undefined, undefined, text);
+  }
+  /**
+   * ast做语法层面的转换 描述的是语法本身 div name:value v-for（js css html）
+   * 虚拟dom描述的是dom元素，可以增加一些自定义属性 描述dom
+   * 
+   * @param {*} vm 
+   * @param {*} tag 
+   * @param {*} key 
+   * @param {*} data 
+   * @param {*} children 
+   * @param {*} text 
+   * @returns 
+   */
+  function vNode(vm, tag, key, data, children, text) {
+    return {
+      vm: vm,
+      tag: tag,
+      key: key,
+      data: data,
+      children: children,
+      text: text
+    };
+  }
+
+  function patchProps(el, props) {
+    for (var key in props) {
+      if (key === 'style') {
+        for (var styleName in props.style) {
+          el.style[styleName] = props.style[styleName];
+        }
+      } else {
+        el.setAttribute(key, props[key]);
+      }
+    }
+  }
+  function createElm(vNode) {
+    var tag = vNode.tag,
+      data = vNode.data,
+      children = vNode.children,
+      text = vNode.text;
+    if (typeof tag === 'string') {
+      // 将真实节点和虚拟节点对应起来，后续修改了属性方便更新
+      vNode.el = document.createElement(tag);
+      // console.log(vNode.el);
+      // 更新真实节点上的元素属性
+      patchProps(vNode.el, data);
+      children.forEach(function (child) {
+        vNode.el.appendChild(createElm(child));
+      });
+    } else {
+      vNode.el = document.createTextNode(text);
+    }
+    return vNode.el;
+  }
+  function patch(oldVnode, vNode) {
+    // 初渲染流程
+    var isRealElement = oldVnode.nodeType;
+    if (isRealElement) {
+      var elm = oldVnode; // 获取真实节点
+      var parentElm = elm.parentNode; // 拿到父元素
+      var newElm = createElm(vNode);
+      parentElm.insertBefore(newElm, elm.nextSibling);
+      parentElm.removeChild(elm);
+      return newElm;
+    }
   }
 
   /**
@@ -391,11 +482,68 @@
    * @param {*} Vue 
    */
   function initLifeCycle(Vue) {
-    Vue.prototype._update = function () {
-      console.log("update");
+    // render函数
+    /**
+     *   _c(
+     * 		'div',
+     * 		{
+     * 			id:"app",
+     * 			style:{
+     * 				"color":"yellow",
+     * 				"font-size":" 24px"
+     * 			}
+     * 		},
+     * 		_v("我是一段文字"),
+     * 		_c(
+     * 			'div',
+     * 			{
+     * 				style:{
+     * 					"color":"red"
+     * 				}
+     * 			},
+     * 			_v(_s(id)+"hello"+_s(name)+"456789")
+     * 		),
+     * 		_c(
+     * 			'span',
+     * 			null,
+     * 			_v("world")
+     * 		)
+     * 	);
+    */
+
+    Vue.prototype._c = function () {
+      return createElementVNode.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
     };
+    Vue.prototype._v = function () {
+      return createTextVNode.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
+    };
+    Vue.prototype._s = function (value) {
+      if (_typeof(value) !== 'object') {
+        return value;
+      }
+      return JSON.stringify(value);
+    };
+
+    /**
+     * 将虚拟节点转换成真实节点
+     */
+    Vue.prototype._update = function (vNode) {
+      // console.log("update",vNode);
+      var vm = this;
+      var el = vm.$el;
+      // console.log(vNode);
+      // console.log(el);
+      // 既有初始化的功能，又有更新的功能
+      vm.$el = patch(el, vNode); // 拿到渲染完成后的新元素
+    };
+
     Vue.prototype._render = function () {
-      console.log("render");
+      var vm = this;
+      // console.log("render函数",vm.$options.render.toString());
+      // console.log(typeof vm.$options.render);
+      // 熏染的时候，会从实例中取值
+      // 可以将属性和视图绑定起来
+      return vm.$options.render.call(vm);
     };
   }
   /**
@@ -404,6 +552,7 @@
    * @param {渲染根节点} el 
    */
   function mountComponent(vm, el) {
+    vm.$el = el;
     // 1.调用render方法产生虚拟节点 虚拟dom
     var vmDom = vm._render(); // vm.$options.render()
     // 2、根据虚拟DOM产生真实dom
@@ -413,7 +562,7 @@
   }
   // 创造响应式数据，
   // 模板转换成ast语法树，
-  // 将ast树转换为render函数(产生虚拟节点，使用响应式数据)，
+  // 将ast树转换为render函数[模板字符串拼接成的render函数](产生虚拟节点，使用响应式数据)，render产生虚拟dom
   // 每次节点更新可以只执行render函数
   // 根据虚拟节点创造真实dom
 
@@ -643,15 +792,15 @@
           }
         }
         if (template) {
-          // 需要对模板进行编译 生成render函数
+          // 需要对模板进行编译 生成render函数(由模板语法组成的函数)，
+          // 调用render函数 通过模板语法产生虚拟节点
           var render = compileToFunction(template);
           ops.render = render; // jsx 最终会被 编译成h('xxx')
         }
       }
       // 有render方法
       // ops.render;// 最终就获取render方法
-
-      mountComponent(vm); // 组件的挂载
+      mountComponent(vm, el); // 组件的挂载
     };
   }
 
