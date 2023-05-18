@@ -44,6 +44,7 @@
 		// 属性和视图关联起来，数据变化可以自动更新视图
 
 		setTimeout(() => {
+			// 事件环
 			vm.name = 'zou';
 			vm.age = 30
 			// render渲染虚拟节点 触发get方法，update将虚拟节点转换真实节点并替换

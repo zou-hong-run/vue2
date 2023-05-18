@@ -46,6 +46,7 @@ class Watcher{
      * 重新渲染
      */
     update(){
+        
         this.get();
     }
 }
