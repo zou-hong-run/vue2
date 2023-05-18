@@ -388,6 +388,113 @@
     return render;
   }
 
+  var id$1 = 0;
+
+  /**
+   * 为每个响应式数据Dep
+   */
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+      this.id = id$1++; //属性的dep要收集watcher
+      this.subs = []; // 这里存放着当前属性对应的watcher有哪些
+    }
+    /**
+     * 响应式数据get的时候，dep会收集当前watcher
+     */
+    _createClass(Dep, [{
+      key: "depend",
+      value: function depend() {
+        // 收集watcher之前，让当前watcher记录当前dep
+        // 收集watcher 处理一个存放多个相同的watcher问题
+        // 当watcher记录dep
+        Dep.target.addDep(this); // 将当前dep实例 传给调用 挂载组件时候调用的 Watcher
+      }
+      /**
+       * 收集watcher
+       * @param {*} watcher 
+       */
+    }, {
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher);
+        // console.log(this.subs);
+      }
+      /**
+       * 通知更新
+       */
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          watcher.update();
+        });
+      }
+    }]);
+    return Dep;
+  }(); // 静态属性，只有一份
+  Dep.target = null;
+
+  var id = 0;
+  /**
+   * 1.当我们创建渲染watcher的时候，我们会把当前的渲染watcher放到Dep.target上
+   * 2.调用_render（）会取值 走到get上
+   */
+  var Watcher = /*#__PURE__*/function () {
+    /**
+     * 
+     * @param {当前实例} vm 
+     * @param {渲染函数} fn 
+     */
+    function Watcher(vm, fn, options) {
+      _classCallCheck(this, Watcher);
+      // 不同组件，有不同的watcher，目前只有一个根实例
+      this.id = id++;
+      this.renderWatcher = options; // boolean 表示是否是一个渲染Watcher
+      this.getter = fn; // 意味着调用这个函数可以发生取值操作，_render()
+      this.deps = []; // 一个watcher存放多个dep 后续实现计算属性，和一些清理工作需要用到
+      this.depsId = new Set();
+      this.get();
+    }
+    /**
+     * 让当前watcher记录dep
+     * @param {*} dep 
+     */
+    _createClass(Watcher, [{
+      key: "addDep",
+      value: function addDep(dep) {
+        // 一个组件对应多个属性，重复的属性也不用重复记录
+        var id = dep.id;
+        if (!this.depsId.has(id)) {
+          this.deps.push(dep);
+          this.depsId.add(id);
+          dep.addSub(this); // watcher已经记住dep了而且去重了，此时让dep也记住watcher
+        }
+        // console.log(this.deps);
+      }
+      /**
+       * 调用这个方法会触发响应式数据get方法-》触发dep收集-》
+       */
+    }, {
+      key: "get",
+      value: function get() {
+        // 静态属性
+        Dep.target = this; // 将watcher实例挂载到dep身上
+        this.getter(); // 去vm上取值 触发响应式数据get -》触发dep收集
+        Dep.target = null; // 清空实例
+      }
+      /**
+       * 重新渲染
+       */
+    }, {
+      key: "update",
+      value: function update() {
+        this.get();
+      }
+    }]);
+    return Watcher;
+  }(); // 需要给**每个属性**增加一个dep，目的就是收集watcher
+
   /**
    * h(),_c()
    * 创建虚拟元素节点
@@ -510,7 +617,6 @@
      * 		)
      * 	);
     */
-
     Vue.prototype._c = function () {
       return createElementVNode.apply(void 0, [this].concat(Array.prototype.slice.call(arguments)));
     };
@@ -553,12 +659,14 @@
    */
   function mountComponent(vm, el) {
     vm.$el = el;
-    // 1.调用render方法产生虚拟节点 虚拟dom
-    var vmDom = vm._render(); // vm.$options.render()
-    // 2、根据虚拟DOM产生真实dom
-    vm._update(vmDom);
+    var updateComponent = function updateComponent() {
+      // 1.调用render方法产生虚拟节点 虚拟dom
+      var vmDom = vm._render(); // vm.$options.render()
+      // 2、根据虚拟DOM产生真实dom
+      vm._update(vmDom); // 3.将真实dom插入到el元素中
+    };
 
-    // 3.将真实dom插入到el元素中
+    new Watcher(vm, updateComponent, true); // true表示是一个渲染Watcher
   }
   // 创造响应式数据，
   // 模板转换成ast语法树，
@@ -662,7 +770,7 @@
     return Observe;
   }();
   /**
-   * 
+   * 代理数据
    * @param {重新定义数据的目标} target 
    * @param {目标的key} key 
    * @param {目标的value} value 
@@ -670,9 +778,16 @@
   function defineReactive(target, key, value) {
     // 使用递归，对值为对象的数据，再次进行劫持
     observe(value); // 内部进行判断，如果value不是对象，则结束调用
+
+    var dep = new Dep(); // 给每个属性增加一个dep
+
     Object.defineProperty(target, key, {
       // 取值的时候
       get: function get() {
+        if (Dep.target) {
+          dep.depend(); // 让这个属性的收集器记住当前watcher
+        }
+
         return value;
       },
       // 修改的时候
@@ -681,6 +796,7 @@
         // 如果设置的值是一个对象，继续进行代理
         observe(newValue);
         value = newValue;
+        dep.notify(); //通知更新
       }
     });
   }

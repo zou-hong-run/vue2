@@ -1,3 +1,4 @@
+import Watcher from "./observe/watcher";
 import { createElementVNode, createTextVNode } from "./vdom/index"
 
 function patchProps(el,props){
@@ -78,7 +79,6 @@ export function initLifeCycle(Vue){
 	 * 		)
 	 * 	);
 	*/
-
 	Vue.prototype._c = function(){
 		return createElementVNode(this,...arguments)
 	}
@@ -92,8 +92,6 @@ export function initLifeCycle(Vue){
 			return (value)
 		}
 		return JSON.stringify(value)
-
-		
 	}
 
 	/**
@@ -125,12 +123,15 @@ export function initLifeCycle(Vue){
  */
 export function mountComponent(vm,el){
 	vm.$el = el;
-	// 1.调用render方法产生虚拟节点 虚拟dom
-	let vmDom = vm._render();// vm.$options.render()
-	// 2、根据虚拟DOM产生真实dom
-	vm._update(vmDom);
 
-	// 3.将真实dom插入到el元素中
+	const updateComponent = ()=>{
+		// 1.调用render方法产生虚拟节点 虚拟dom
+		let vmDom = vm._render();// vm.$options.render()
+		// 2、根据虚拟DOM产生真实dom
+		vm._update(vmDom);// 3.将真实dom插入到el元素中
+	}
+	new Watcher(vm,updateComponent,true);// true表示是一个渲染Watcher
+	
 }
 // 创造响应式数据，
 // 模板转换成ast语法树，
