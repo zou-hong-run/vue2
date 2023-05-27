@@ -54,7 +54,12 @@ export default {
 - obserbe/watcher.js 每个组件都有一个watcher收集dep
   - addDep()记录当前传入的dep，并且去重，然后通知dep.addSub()收集当前watcher
   - get() 调用`_update(_render())`重新渲染视图
-  - update()调用get()重新渲染视图
+  - update()调用queueWatcher(watcher)暂存当前watcher
+  - run() 调用this.get()触发响应式数据更新
+  - queueWatcher 采用队列收集当前watcher，然后调用nextTick(flushSchedulerQueue);实现异步更新
+  - flushSchedulerQueue 刷新调度任务 获取队列中的所有watcher然后调用watcher.run()方法
+  - nextTick 异步更新函数 使用队列收集当前flushSchedulerQueue 然后调用flushCallback
+  - flushCallback 从队列中获取所有的flushSchedulerQueue 然后调用他
 - compiler/index.js 将模板编译成ast $mount方法调用该文件中的函数
   - compileToFunction(template) 
     - 该方法调用 compile/parse.js里面的parseHTML(),
