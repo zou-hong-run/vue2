@@ -43,19 +43,28 @@
 
 		// 属性和视图关联起来，数据变化可以自动更新视图
 
-		setTimeout(() => {
-			// 事件环
-			vm.name = 'zou';
-			vm.age = 30
-			// render渲染虚拟节点 触发get方法，update将虚拟节点转换真实节点并替换
-			// vm._update(vm._render());// 手动渲染 更新 
-		}, 1000);
+		// setTimeout(() => {
+		// 	// 事件环
+		// 	vm.name = 'zou';
+		// 	vm.age = 30
+		// 	// render渲染虚拟节点 触发get方法，update将虚拟节点转换真实节点并替换
+		// 	// vm._update(vm._render());// 手动渲染 更新
+		// 	console.log(123); 
+		// }, 3000);
+		vm.name = "zhr";
+		// 不是创建了一个异步任务，而是将这个任务维护到了队列中了
+		vm.$nextTick(()=>{
+			console.log(app.innerHTML);
+		})
 
 		// 观察者模式，异步更新
 		// 给模板中的属性，添加一个收集器 dep
 		// 页面渲染的时候，将逻辑（vm._update(vm._render()）封装到watcher中
 		// 让dep记住这个watcher，属性变化了可以找到dep中存放的wacher进行重新渲染
 		// 观察者模式
+
+
+
 	</script>
 </body>
 

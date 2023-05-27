@@ -1,5 +1,6 @@
 import { initMixin } from "./init";
 import { initLifeCycle } from "./lifecycle";
+import { nextTick } from "./observe/watcher";
 
 
 
@@ -11,6 +12,7 @@ function Vue(options){
   // initMixin在Vue对象上拓展的_init方法的方法
   this._init(options)
 }
+Vue.prototype.$nextTick = nextTick;
 
 initMixin(Vue);
 

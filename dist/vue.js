@@ -489,11 +489,74 @@
     }, {
       key: "update",
       value: function update() {
+        // 实现异步更新
+        // this.get();
+        queueWatcher(this); // 暂存当前的watcher
+      }
+    }, {
+      key: "run",
+      value: function run() {
         this.get();
       }
     }]);
     return Watcher;
-  }(); // 需要给**每个属性**增加一个dep，目的就是收集watcher
+  }();
+  var queue = [];
+  var has = {};
+  var pending = false; // 防抖
+
+  /**
+   * 刷新调度队列
+   */
+  function flushSchedulerQueue() {
+    var flushQueue = queue.slice(0);
+    queue = [];
+    has = [];
+    pending = false;
+    flushQueue.forEach(function (q) {
+      return q.run();
+    });
+  }
+
+  /**
+   * 收集传入的watcher
+   * @param {Watcher} watcher 
+   */
+  function queueWatcher(watcher) {
+    var id = watcher.id;
+    if (!has[id]) {
+      queue.push(watcher);
+      has[id] = true;
+      // 不管__update执行多少次，但是最终只执行一轮更新
+      if (!pending) {
+        nextTick(flushSchedulerQueue);
+        pending = true;
+      }
+    }
+  }
+  var callbacks = [];
+  var waiting = false;
+  function flushCallback() {
+    waiting = false;
+    var cbs = callbacks.slice(0);
+    callbacks = [];
+    cbs.forEach(function (cb) {
+      return cb();
+    });
+  }
+  /**
+   * 异步更新函数
+   * @param {Function} cb 刷新调度队列
+   */
+  function nextTick(cb) {
+    callbacks.push(cb);
+    if (!waiting) {
+      setTimeout(function () {
+        flushCallback();
+      }, 0);
+    }
+    waiting = true;
+  }
 
   /**
    * h(),_c()
@@ -928,6 +991,7 @@
     // initMixin在Vue对象上拓展的_init方法的方法
     this._init(options);
   }
+  Vue.prototype.$nextTick = nextTick;
   initMixin(Vue);
   initLifeCycle(Vue);
 

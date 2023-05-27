@@ -46,10 +46,69 @@ class Watcher{
      * 重新渲染
      */
     update(){
-        
-        this.get();
+        // 实现异步更新
+        // this.get();
+        queueWatcher(this);// 暂存当前的watcher
+    }
+    run(){
+        this.get()
     }
 }
+
+let queue = [];
+let has = {};
+let pending = false;// 防抖
+
+/**
+ * 刷新调度队列
+ */
+function flushSchedulerQueue(){
+    let flushQueue = queue.slice(0); 
+    queue = [];
+    has = [];
+    pending = false;
+    flushQueue.forEach(q=>q.run());
+}
+
+/**
+ * 收集传入的watcher
+ * @param {Watcher} watcher 
+ */
+function queueWatcher(watcher){
+    const id = watcher.id;
+    if(!has[id]){
+        queue.push(watcher);
+        has[id] = true;
+        // 不管__update执行多少次，但是最终只执行一轮更新
+        if(!pending){
+            nextTick(flushSchedulerQueue);
+            pending = true;
+        }
+    }
+}
+
+let callbacks = [];
+let waiting = false;
+function flushCallback(){
+    waiting = false;
+    let cbs = callbacks.slice(0);
+    callbacks = [];
+    cbs.forEach(cb=>cb());
+}
+/**
+ * 异步更新函数
+ * @param {Function} cb 刷新调度队列
+ */
+export function nextTick(cb){
+    callbacks.push(cb);
+    if(!waiting){
+        setTimeout(()=>{
+            flushCallback()
+        },0)
+    };
+    waiting = true;
+}
+
 // 需要给**每个属性**增加一个dep，目的就是收集watcher
 // 一个视图（组件）中 有多少个属性 （n个属性会对应一个视图）===》n个dep对应一个watcher
 // 一个属性 对应多个视图（组件）==》 一个dep对应多个组件 wacher
