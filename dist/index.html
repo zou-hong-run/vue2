@@ -15,9 +15,18 @@
 			{{age}}hello{{name}}456789{{name}}
 		</div>
 		<span>world{{num}}</span>
+		<pre>{{arr}}</pre>
+		<pre>{{id}}</pre>
+		<pre>{{a}}</pre>
+
 	</div>
 	<script src="./vue.js"></script>
 	<script>
+		Vue.mixin({
+			created(){
+				console.log("create");
+			}
+		})
 		// 响应式的数据变化，内部数据变化我可以监控到
 		// 数据的取值 和 更改值 我们要监听到
 		const vm = new Vue({
@@ -30,8 +39,12 @@
 						userId: 1334,
 						cardId: 2334
 					},
-					arr: [1, 3, { a: 2 }]
+					arr: [1, 3, { a: 2 },[5,6]],
+					a:{a:1}
 				}
+			},
+			created(){
+				console.log("create11111");
 			},
 			el: "#app",// 将数据解析到el元素
 			// template:`<div>123</div>`,
@@ -51,17 +64,28 @@
 		// 	// vm._update(vm._render());// 手动渲染 更新
 		// 	console.log(123); 
 		// }, 3000);
-		vm.name = "zhr";
+		// vm.name = "zhr";
 		// 不是创建了一个异步任务，而是将这个任务维护到了队列中了
-		vm.$nextTick(()=>{
-			console.log(app.innerHTML);
-		})
+		// vm.$nextTick(()=>{
+		// 	console.log(app.innerHTML);
+		// })
 
 		// 观察者模式，异步更新
 		// 给模板中的属性，添加一个收集器 dep
 		// 页面渲染的时候，将逻辑（vm._update(vm._render()）封装到watcher中
 		// 让dep记住这个watcher，属性变化了可以找到dep中存放的wacher进行重新渲染
 		// 观察者模式
+
+		// 需要给数组添加依赖收集才能实现更新
+		// vm.arr = [];// 有效
+		setTimeout(()=>{
+			// vm.id.why = 12;// 无效 我们选择给对象也增加dep，如果后续用户添加了属性，我们可以触发dep更新
+			// vm.arr[2].c = 12
+			// vm.arr.push(100,100,100);// 无效 如果还没给数组实现依赖收集，此操作是无效的 可以给数组增加dep，后续给数组增加某一项，可以触发dep更新
+			vm.a.b = 100;
+			vm.a.__ob__.dep.notify();
+			vm.arr[3].push([78797,[456]]);
+		},1000)
 
 
 

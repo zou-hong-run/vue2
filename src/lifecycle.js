@@ -138,3 +138,10 @@ export function mountComponent(vm,el){
 // 将ast树转换为render函数[模板字符串拼接成的render函数](产生虚拟节点，使用响应式数据)，render产生虚拟dom
 // 每次节点更新可以只执行render函数
 // 根据虚拟节点创造真实dom
+
+export function callHook(vm,hook){
+	const handlers = vm.$options[hook];
+	if(handlers){
+		handlers.forEach(handler=>handler.call(vm))
+	}
+}

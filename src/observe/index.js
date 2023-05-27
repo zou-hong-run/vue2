@@ -7,6 +7,10 @@ import Dep from "./dep";
 class Observe {
 	// 一开始进入该方法，一定是一个对象，然后才是其他东西
 	constructor(data) {
+		// data可能是对象，也可能是数组
+		// 给每个对象都增加依赖收集 给数组或对象增加东西的时候可以通过dep异步更新
+		this.dep = new Dep();
+
 		// 想当于给数据加了一个标识，如果数据上有这个属性，说明被观测过
 		// data.__ob__ = this;// Observe对象挂载到数据身上，方便使用
 		Object.defineProperty(data, '__ob__', {
@@ -42,6 +46,17 @@ class Observe {
 		data.forEach(item => observe(item))
 	}
 }
+function dependArray(value){
+	for (let index = 0; index < value.length; index++) {
+		let current = value[index];
+		current.__ob__?.dep.depend();
+		if(Array.isArray(current)){
+			dependArray(current);
+		}
+		
+	}
+}
+
 /**
  * 代理数据
  * @param {重新定义数据的目标} target 
@@ -50,15 +65,20 @@ class Observe {
  */
 export function defineReactive(target, key, value) {
 	// 使用递归，对值为对象的数据，再次进行劫持
-	observe(value);// 内部进行判断，如果value不是对象，则结束调用
-
+	// 内部进行判断，如果value不是对象，则结束调用
+	let childOb = observe(value);// childOb.dep用来依赖收集
 	let dep = new Dep();// 给每个属性增加一个dep
-
 	Object.defineProperty(target, key, {
 		// 取值的时候
 		get() {
 			if (Dep.target) {
 				dep.depend();// 让这个属性的收集器记住当前watcher
+				if(childOb){
+					childOb.dep.depend();//让数组本身也实现依赖收集 让watcher记住这个dep
+					if(Array.isArray(value)){
+						dependArray(value);
+					}
+				}
 			}
 			return value;
 		},
